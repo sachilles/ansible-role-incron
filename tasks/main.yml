@@ -1,14 +1,18 @@
 ---
 - name: Include OS-specific variables.
-  include_vars: "{{ ansible_os_family }}.yml"
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
 
-- name: Install Incron (RedHat).
-  yum: name=incron state=present
-  when: (incron_install_from_source == false) and (ansible_os_family == 'RedHat')
+- name: Install Incron (RedHat)
+  ansible.builtin.yum:
+    name: incron
+    state: installed
+  when: (not incron_install_from_source) and (ansible_os_family == 'RedHat')
 
-- name: Install Incron (Debian).
-  apt: name=incron state=present
-  when: (incron_install_from_source == false) and (ansible_os_family == 'Debian')
+- name: Install Incron (Debian)
+  ansible.builtin.apt:
+    name: incron
+    state: present
+  when: (not incron_install_from_source) and (ansible_os_family == 'Debian')
 
 #
 # NOTICE: disable install from source
@@ -17,30 +21,30 @@
 #   when: incron_install_from_source == true
 
 - name: Ensure Incron is running and enabled as configured.
-  service:
+  ansible.builtin.service:
     name: "{{ incron_daemon }}"
     state: started
-    enabled: yes
+    enabled: true
   when: incron_enabled
 
 - name: Ensure Incron is stopped and disabled as configured.
-  service:
+  ansible.builtin.service:
     name: "{{ incron_daemon }}"
     state: stopped
-    enabled: no
+    enabled: false
   when: not incron_enabled
 
 - name: Setup incron.d scripts
-  template:
+  ansible.builtin.template:
     src: incrontab.j2
     dest: "{{ incron_system_tables_dir }}{{ item.name }}"
   with_items: "{{ incron_system_tables }}"
   when: incron_system_tables is defined
   notify:
-   - restart incron
+    - Restart incron
 
 - name: Setup incron user tables
-  template:
+  ansible.builtin.template:
     src: user_incrontab.j2
     dest: "{{ incron_user_tables_dir }}{{ item.username }}"
     owner: "{{ item.username }}"
@@ -49,4 +53,4 @@
   with_items: "{{ incron_user_tables }}"
   when: incron_user_tables is defined
   notify:
-    - restart incron
+    - Restart incron
